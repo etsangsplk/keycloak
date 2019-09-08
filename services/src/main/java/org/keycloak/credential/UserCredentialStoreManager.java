@@ -16,6 +16,15 @@
  */
 package org.keycloak.credential;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.keycloak.common.util.reflections.Types;
 import org.keycloak.models.CredentialValidationOutput;
 import org.keycloak.models.KeycloakSession;
@@ -29,15 +38,7 @@ import org.keycloak.provider.ProviderFactory;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageManager;
 import org.keycloak.storage.UserStorageProvider;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.keycloak.storage.ldap.LDAPStorageProvider;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -45,7 +46,7 @@ import java.util.stream.Collectors;
  */
 public class UserCredentialStoreManager implements UserCredentialManager, OnUserCache {
     protected KeycloakSession session;
-
+ 
     public UserCredentialStoreManager(KeycloakSession session) {
         this.session = session;
     }
@@ -324,17 +325,20 @@ public class UserCredentialStoreManager implements UserCredentialManager, OnUser
     @Override
     public CredentialValidationOutput authenticate(KeycloakSession session, RealmModel realm, CredentialInput input) {
         List<CredentialAuthentication> list = UserStorageManager.getEnabledStorageProviders(session, realm, CredentialAuthentication.class);
+        
+        CredentialValidationOutput output = null;
         for (CredentialAuthentication auth : list) {
             if (auth.supportsCredentialAuthenticationFor(input.getType())) {
-                CredentialValidationOutput output = auth.authenticate(realm, input);
-                if (output != null) return output;
+                output = auth.authenticate(realm, input, output);
+                if (output != null && !LDAPStorageProvider.isKerberosUsernameExists(output)) return output;
             }
         }
 
+        output = null;
         list = getCredentialProviders(session, realm, CredentialAuthentication.class);
         for (CredentialAuthentication auth : list) {
             if (auth.supportsCredentialAuthenticationFor(input.getType())) {
-                CredentialValidationOutput output = auth.authenticate(realm, input);
+                output = auth.authenticate(realm, input, output);
                 if (output != null) return output;
             }
         }
