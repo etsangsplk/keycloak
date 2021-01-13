@@ -24,16 +24,17 @@ import javax.security.auth.Subject;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
  * @author <a href="mailto:ungarida@gmail.com">Davide Ungari</a>
  * @version $Revision: 1 $
  */
-public abstract class GenericPrincipalFactory {
+public abstract class GenericPrincipalFactory implements PrincipleFactory {
 
+    @Override
     public GenericPrincipal createPrincipal(Realm realm, final Principal identity, final Set<String> roleSet) {
         final Subject subject = new Subject();
         final Set<Principal> principals = subject.getPrincipals();
